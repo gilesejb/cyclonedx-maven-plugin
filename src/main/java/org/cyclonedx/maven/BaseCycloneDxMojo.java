@@ -247,13 +247,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     private void getClosestMetadata(Artifact artifact, MavenProject project, Component component) {
         extractMetadata(project, component);
-        if (project.getParent() != null) {
+        try {
             getClosestMetadata(artifact, project.getParent(), component);
-        } else if (project.getModel().getParent() != null) {
-            final MavenProject parentProject = retrieveParentProject(artifact, project);
-            if (parentProject != null) {
-                getClosestMetadata(artifact, parentProject, component);
+        } catch (IllegalStateException ise) {
+            getLog().debug("project " + project.getName() + " has no building request");
+            try {
+            	getClosestMetadata(artifact, retrieveParentProject(artifact, project), component);
+            } catch (NullPointerException e) {
+            	getLog().debug("no more metadata for " + project.getName());
+            	return;
             }
+        } catch (NullPointerException npe) {
+        	return;
         }
     }
 
